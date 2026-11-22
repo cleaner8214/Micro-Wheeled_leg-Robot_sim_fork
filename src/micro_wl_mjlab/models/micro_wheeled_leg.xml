@@ -1,0 +1,54 @@
+<mujoco model="micro_wheeled_leg_mjlab">
+  <!-- Simulation-only equivalent model. Not a STEP/closed-loop reconstruction. -->
+  <compiler angle="radian" autolimits="true"/>
+  <default>
+    <joint damping="0.0003" armature="0.00001"/>
+  </default>
+  <asset>
+    <material name="robot_body" rgba="0.17 0.23 0.29 1"/>
+    <material name="robot_leg" rgba="0.22 0.59 0.77 1"/>
+    <material name="robot_wheel" rgba="0.08 0.08 0.09 1"/>
+  </asset>
+  <!-- Ground is supplied by mjlab SceneCfg: do not create a second plane here. -->
+  <worldbody>
+    <body name="base" pos="0 0 0.086">
+      <freejoint name="root"/>
+      <geom name="base_visual" type="box" size="0.029 0.030 0.014"
+            mass="0.20" material="robot_body" contype="0" conaffinity="0"/>
+      <body name="left_leg" pos="0 0.034 0">
+        <joint name="left_hip" type="hinge" axis="1 0 0" range="-0.90 0.90"/>
+        <geom name="left_leg_visual" type="capsule"
+              fromto="0 0 -0.004 0 0 -0.067" size="0.0045"
+              mass="0.026" material="robot_leg" contype="0" conaffinity="0"/>
+        <body name="left_wheel" pos="0 0 -0.071">
+          <joint name="left_wheel_joint" type="hinge" axis="0 1 0" damping="0.00002"/>
+          <geom name="left_tire" type="cylinder" euler="1.5707963267948966 0 0"
+                size="0.015 0.007" mass="0.025" material="robot_wheel"
+                friction="1.2 0.005 0.0001" condim="3"/>
+        </body>
+      </body>
+      <body name="right_leg" pos="0 -0.034 0">
+        <joint name="right_hip" type="hinge" axis="1 0 0" range="-0.90 0.90"/>
+        <geom name="right_leg_visual" type="capsule"
+              fromto="0 0 -0.004 0 0 -0.067" size="0.0045"
+              mass="0.026" material="robot_leg" contype="0" conaffinity="0"/>
+        <body name="right_wheel" pos="0 0 -0.071">
+          <joint name="right_wheel_joint" type="hinge" axis="0 1 0" damping="0.00002"/>
+          <geom name="right_tire" type="cylinder" euler="1.5707963267948966 0 0"
+                size="0.015 0.007" mass="0.025" material="robot_wheel"
+                friction="1.2 0.005 0.0001" condim="3"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <motor name="left_wheel_torque" joint="left_wheel_joint" gear="1"
+           ctrlrange="-0.035 0.035"/>
+    <motor name="right_wheel_torque" joint="right_wheel_joint" gear="1"
+           ctrlrange="-0.035 0.035"/>
+    <position name="left_hip_target" joint="left_hip" kp="2.5" kv="0.045"
+              ctrlrange="-0.90 0.90" forcerange="-0.25 0.25"/>
+    <position name="right_hip_target" joint="right_hip" kp="2.5" kv="0.045"
+              ctrlrange="-0.90 0.90" forcerange="-0.25 0.25"/>
+  </actuator>
+</mujoco>
