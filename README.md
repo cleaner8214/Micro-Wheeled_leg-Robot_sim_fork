@@ -1,56 +1,57 @@
-# Micro-Wheeled_leg-Robot
-> **The smallest two-wheeled-leg robot!**
->
-> Video：[[自制]首款桌面级双轮腿机器人](https://www.bilibili.com/video/BV1io4y1q73L/?spm_id_from=333.999.0.0)
->
+# Micro-Wheeled_leg-Robot — MuJoCo 仿真精简版
 
-| Real Robot        | 3D Design        |
-| ------------ | ------------ |
-| <img src="4.Docs/Image/RobotReal.jpg" alt="Image 1" height="200"/> | <img src="4.Docs/Image/RobotRender.png" alt="Image 2" height="200"/> |
+本分支是仿真专用的最小复现工程，不需要采购、加工、PCB、ESP32 或 Arduino。上游项目：[MuShibo/Micro-Wheeled_leg-Robot](https://github.com/MuShibo/Micro-Wheeled_leg-Robot)。原始 fork 内容保存在 `master` 分支。
 
-[中文文档](README_CN.md)
+## 范围
 
-QQ group (unofficial): 991727288
+- `models/micro_wheeled_leg.xml`：浮动底盘、左右独立腿部铰链与两轮，四个执行器（两轮力矩、两腿位置）。
+- `sim/control.py`：四状态自平衡反馈、差速转向、腿部对称收放及简单横滚补偿。
+- `sim/run.py`：无界面仿真、窗口可视化、外力扰动、CSV 输出。
+- `tests/`：基本结构/控制逻辑测试，及安装 MuJoCo 后的模型加载烟雾测试。
 
-### Mechanical Structure Documentation
+**重要限制**：这不是从原作者 STEP 文件生成的精确 MJCF。腿部采用单转动副代替原始连杆机构，几何、质量、惯量、摩擦与执行器力矩上限全部是初步工程假设。尚未实现原机的 FOC、真实舵机动力学、四杆闭链、跳跃控制、ROS2 或强化学习。不能由这里的结果推断原实体机器人的性能。
 
-* The file "OriginalRobotModel.stp" is the robot model file.
-* The "Parts-Manufactured" folder contains parts that need to be processed and produced by yourself, including 3D printing, CNC, and panel cutting.
-* The "Parts-Purchased" folder contains parts that need to be purchased.
+## 环境
 
-### PCB Documentation
+Ubuntu 22.04、Python 3.12、MuJoCo 4.0.0。已有 `env_mujoco_v400_py312` 环境可直接使用：
 
-* There are four PCBs that need to be fabricated; the circuit boards provide both the schematic and PCB source files, and the IDE used is [LCEDA](https://lceda.cn/).
-* The main control board is based on the ESP32, with the brushless motor driver chip being the L6234PD013TR. 
-* The encoder chip used is the AS5600, communicating with the main control board via the I2C interface.
-* The IMU used is the MPU6050 module, which shares the same I2C interface with the right-side encoder.
-* The servo debugging board unifies the two serial lines into one signal line, completing the task through time-division multiplexing to send and receive data.
-* In addition, you will need three GH1.25 4PIN double-ended cables, with a recommended length of 15cm. These need to be purchased separately.
+    conda activate env_mujoco_v400_py312
+    python -c 'import mujoco; print(mujoco.__version__)'
 
-| Wire Connection | 
-| ------------ |
-| <img src="4.Docs/Image/Connection.png" alt="Image 3" height="500"/> |
+如未安装：
 
-### Source Code Usage
+    python -m pip install -r requirements.txt
 
-* Based on [Arduino IDE](https://www.arduino.cc/), it is very easy to learn and use.
-* The brushless motor drive for the wheels is based on [simpleFOC](https://www.simplefoc.com/#simplefoc_library).
-* The left bus servo ID is 1, and the right is 2; the calibration for the legs to fully squat to the mechanical limit position is 2048; configuration is done using [FEETECH Debug Software](https://gitee.com/ftservo/fddebug).
-* The [ESP32](https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf) itself has WiFi capabilities, with the webpage code stored in flash, transmitting JSON data via the WebSocket communication protocol.
-* Please use the WebSocket library located in [3.Software/libraries](3.Software/libraries). The recommended esp32 version is 2.0.3.
-* There are two WiFi models, AP mode and STA mode. AP mode uses the device as a wireless hotspot, and STA mode uses the device as a client to connect to an existing wireless network.
+## 运行方法
 
-### Usage Instructions
+在仓库根目录：
 
-* 1. Connect the battery's XH2.54 plug to the rear interface of the main control board and turn on the switch to power the robot.
-* 2. After turning on the switch, a red light on the main board will indicate that the power is on.
-* 3. Next, the wheels will start FOC motor initialization, with the wheels moving slightly and the legs starting to move.
-* 4. If the battery is sufficient, the blue LED on the main control board will light up. If it does not light up, charging is needed.
-* 5. After this process is complete, press the EN button on the main control board to restart, and you can then connect to the robot's WiFi network starting with WL. The password is the lowercase WiFi name.
-* 6. Open a browser and go to the URL 192.168.1.11. The remote control interface is compatible with Android, iOS, Windows, Linux, macOS, etc., and it is recommended to use Chrome or Firefox.
-* 7. Manually stabilize the robot, with the wheels slightly touching the ground. Click the "Robot go!" button on the web page, and the robot will stand up. You can then control the robot's movement using the joystick.
+    # 直立仿真，默认不弹出窗口
+    python -m sim.run --duration 8 --headless
 
-#### Open Source Contributors
+    # GUI 显示 (GLFW/OpenGL)
+    python -m sim.run --duration 15 --render
 
-* Mu Shibo
-* Li Yufeng
+    # 前进及 40% 收腿
+    python -m sim.run --duration 12 --speed 0.04 --crouch 0.4 --render
+
+    # t=2.0～2.1 秒施加 0.3 N 的 +X 方向外力，保存 20Hz 状态记录
+    python -m sim.run --duration 8 --push-force 0.3 --csv results/push.csv --headless
+
+    # 关掉轮部平衡反馈，对照开环姿态
+    python -m sim.run --duration 8 --no-balance --headless
+
+    # 静态/控制单元测试；安装了 MuJoCo 才执行动力学加载烟雾测试
+    python -m unittest discover -s tests -v
+
+仿真状态在每次运行末尾打印。`FALLEN` 表示俯仰角超过 60° 或底盘高度低于 35 mm；返回码为 1。`FINISHED` 表示到时未触发失败条件，并不等同于理论稳定性证明。
+
+## 模型参数与验证现状
+
+模型轮半径 **0.015 m**，腿部连杆约 **0.071 m**，机身质量 **0.20 kg**，单轮质量 **0.025 kg**，单轮扭矩限幅 **0.035 N·m**。控制增益位于 `sim/control.py`，需要通过动力学实测整定。
+
+当前只通过不依赖 MuJoCo 的 Python 控制测试与 XML 结构验证；由于工程创建环境没有 MuJoCo，**没有完成实际 MuJoCo 动力学稳定性测试**。请先在目标 Ubuntu 环境运行上述命令，确认 XML 能加载以及自平衡响应，再推进模型参数辨识。
+
+建议验证顺序：静止站立 → 前后移动 → 腿部高度调节 → 外力扰动 → 转向。后续需要更接近原机结构时，从上游 `1.RobotModel/OriginalRobotModel.stp` 提取质心/惯量与连杆尺寸，增加真实闭链约束。
+
+原作者根仓库未明确给所有资产设置统一许可证；在再分发原始机械资料时请确认授权范围。
