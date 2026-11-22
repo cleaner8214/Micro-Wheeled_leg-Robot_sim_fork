@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "micro-wl-mjlab"
+version = "0.1.0"
+description = "Simulation-only wheeled-leg robot task for mjlab 1.6.1"
+requires-python = ">=3.11"
+dependencies = ["mjlab==1.6.1"]
+
+[project.entry-points."mjlab.tasks"]
+micro-wheeled-leg = "micro_wl_mjlab"
+
+[project.scripts]
+micro-wl-sim = "micro_wl_mjlab.run:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["micro_wl_mjlab*"]
+
+[tool.setuptools.package-data]
+micro_wl_mjlab = ["models/*.xml"]
